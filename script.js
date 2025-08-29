@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	// Quiz state
 	let currentQuestion = 0;
-	let answers = [null, null, null];
+	let answers = [null, null, null, null];
 
 	// Question data
 	const questions = [
@@ -28,6 +28,11 @@ document.addEventListener('DOMContentLoaded', function () {
 			text: 'Is the point (3, -2) on the line 2x - y = 8? Answer Yes or No.',
 			equation: { a: 2, b: -1, c: 8 }, // 2x - y = 8
 			point: [3, -2],
+		},
+		{
+			type: 'slope-type',
+			text: 'What is the slope of the line shown below?',
+			line: { m: 0, b: 4 }, // y = 4
 		}
 	];
 
@@ -55,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function () {
 					<option value="No" ${answers[1]==='No'?'selected':''}>No</option>
 				</select>
 			`;
-			drawGraph();
+			drawGraph(1);
 		} else if (currentQuestion === 2) {
 			// Equation and point question
 			questionArea.innerHTML = `
@@ -68,12 +73,28 @@ document.addEventListener('DOMContentLoaded', function () {
 					<option value="No" ${answers[2]==='No'?'selected':''}>No</option>
 				</select>
 			`;
+		} else if (currentQuestion === 3) {
+			// Slope type question
+			questionArea.innerHTML = `
+				<h2>Question 4</h2>
+				<p>${questions[3].text}</p>
+				<canvas id="graph-canvas" width="300" height="300" style="border:1px solid #333;"></canvas>
+				<label for="slope-type">Slope:</label>
+				<select id="slope-type" name="slope-type">
+					<option value="">Select</option>
+					<option value="Positive" ${answers[3]==='Positive'?'selected':''}>Positive</option>
+					<option value="Negative" ${answers[3]==='Negative'?'selected':''}>Negative</option>
+					<option value="Zero" ${answers[3]==='Zero'?'selected':''}>Zero</option>
+					<option value="Undefined" ${answers[3]==='Undefined'?'selected':''}>Undefined</option>
+				</select>
+			`;
+			drawGraph(3);
 		}
 		prevBtn.disabled = currentQuestion === 0;
 		nextBtn.disabled = currentQuestion === questions.length - 1;
 	}
 
-	function drawGraph() {
+	function drawGraph(questionIdx) {
 		const canvas = document.getElementById('graph-canvas');
 		if (!canvas) return;
 		const ctx = canvas.getContext('2d');
@@ -128,22 +149,31 @@ document.addEventListener('DOMContentLoaded', function () {
 			ctx.restore();
 		}
 
-		// Draw line y = mx + b
+		// Draw line
 		ctx.strokeStyle = 'blue';
 		ctx.beginPath();
 		let started = false;
-		for (let x = min; x <= max; x++) {
-			let y = questions[1].line.m * x + questions[1].line.b;
-			if (y >= min && y <= max) {
-				let px = (x - min) * step;
-				let py = (max - y) * step;
-				if (!started) {
-					ctx.moveTo(px, py);
-					started = true;
-				} else {
-					ctx.lineTo(px, py);
+		if (questionIdx === 1) {
+			// Question 2: y = mx + b
+			for (let x = min; x <= max; x++) {
+				let y = questions[1].line.m * x + questions[1].line.b;
+				if (y >= min && y <= max) {
+					let px = (x - min) * step;
+					let py = (max - y) * step;
+					if (!started) {
+						ctx.moveTo(px, py);
+						started = true;
+					} else {
+						ctx.lineTo(px, py);
+					}
 				}
 			}
+		} else if (questionIdx === 3) {
+			// Question 4: y = 4 (horizontal line)
+			let y = questions[3].line.b;
+			let py = (max - y) * step;
+			ctx.moveTo(0, py);
+			ctx.lineTo(size, py);
 		}
 		ctx.stroke();
 		// No red dot for the point
@@ -173,6 +203,8 @@ document.addEventListener('DOMContentLoaded', function () {
 			answers[1] = document.getElementById('point-on-line').value;
 		} else if (currentQuestion === 2) {
 			answers[2] = document.getElementById('eq-point-on-line').value;
+		} else if (currentQuestion === 3) {
+			answers[3] = document.getElementById('slope-type').value;
 		}
 	}
 
@@ -234,9 +266,17 @@ document.addEventListener('DOMContentLoaded', function () {
 		${correct3 ? '<span style="color:green">Correct</span>' : '<span style="color:red">Incorrect</span>'}<br>
 		Solution: 2x - y = 8, for (3, -2): 2*3 - (-2) = 6 + 2 = 8. Point (3, -2) is on the line.
 		</li>`;
+		// Question 4
+		let correct4 = answers[3] === 'Zero';
+		if (correct4) numCorrect++;
+		resultsHtml += `<li><strong>Question 4:</strong> What is the slope of the line shown below?<br>
+		Your answer: <em>${answers[3] || '(no answer)'}</em> <br>
+		${correct4 ? '<span style="color:green">Correct</span>' : '<span style="color:red">Incorrect</span>'}<br>
+		Solution: The slope is <strong>Zero</strong> (horizontal line).
+		</li>`;
 		resultsHtml += '</ol>';
-		let percent = Math.round((numCorrect / 3) * 100);
-		resultsHtml += `<h3>Score: ${numCorrect} / 3 (${percent}%)</h3>`;
+		let percent = Math.round((numCorrect / 4) * 100);
+		resultsHtml += `<h3>Score: ${numCorrect} / 4 (${percent}%)</h3>`;
 		// Replace quiz with results
 		document.getElementById('quiz-container').innerHTML = resultsHtml;
 	});
