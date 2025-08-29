@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	// Quiz state
 	let currentQuestion = 0;
-	let answers = [null, null];
+	let answers = [null, null, null];
 
 	// Question data
 	const questions = [
@@ -22,6 +22,12 @@ document.addEventListener('DOMContentLoaded', function () {
 			text: 'Is the point (4, 9) on the line y = 2x + 1? Answer Yes or No.',
 			line: { m: 2, b: 1 },
 			point: [4, 9],
+		},
+		{
+			type: 'eq-point-on-line',
+			text: 'Is the point (3, -2) on the line 2x - y = 8? Answer Yes or No.',
+			equation: { a: 2, b: -1, c: 8 }, // 2x - y = 8
+			point: [3, -2],
 		}
 	];
 
@@ -50,6 +56,18 @@ document.addEventListener('DOMContentLoaded', function () {
 				</select>
 			`;
 			drawGraph();
+		} else if (currentQuestion === 2) {
+			// Equation and point question
+			questionArea.innerHTML = `
+				<h2>Question 3</h2>
+				<p>${questions[2].text}</p>
+				<label for="eq-point-on-line">Is the point on the line?</label>
+				<select id="eq-point-on-line" name="eq-point-on-line">
+					<option value="">Select</option>
+					<option value="Yes" ${answers[2]==='Yes'?'selected':''}>Yes</option>
+					<option value="No" ${answers[2]==='No'?'selected':''}>No</option>
+				</select>
+			`;
 		}
 		prevBtn.disabled = currentQuestion === 0;
 		nextBtn.disabled = currentQuestion === questions.length - 1;
@@ -153,54 +171,73 @@ document.addEventListener('DOMContentLoaded', function () {
 			answers[0] = document.getElementById('slope').value.trim();
 		} else if (currentQuestion === 1) {
 			answers[1] = document.getElementById('point-on-line').value;
+		} else if (currentQuestion === 2) {
+			answers[2] = document.getElementById('eq-point-on-line').value;
 		}
 	}
 
 	quizForm.addEventListener('submit', function (e) {
 		e.preventDefault();
 		saveAnswer();
-		let output = '';
-		let showSolutionBtn = '';
-		if (currentQuestion === 0) {
-			// Slope grading
-			let slopeInput = answers[0];
-			let correct = false;
-			let correctSlope = (11 - 3) / (5 - 2); // 8/3
+		// Show results screen
+		let numCorrect = 0;
+		let resultsHtml = '<h2>Quiz Results</h2><ol>';
+		// Question 1
+		let slopeInput = answers[0];
+		let correctSlope = (11 - 3) / (5 - 2); // 8/3
+		let correct1 = false;
+		let userSlope = '';
+		if (slopeInput) {
 			if (slopeInput.includes('/')) {
 				const parts = slopeInput.split('/');
 				if (parts.length === 2) {
 					const num = parseFloat(parts[0]);
 					const denom = parseFloat(parts[1]);
 					if (!isNaN(num) && !isNaN(denom) && Math.abs(num/denom - correctSlope) < 0.001) {
-						correct = true;
+						correct1 = true;
 					}
+					userSlope = num/denom;
 				}
 			} else {
 				const val = parseFloat(slopeInput);
 				if (!isNaN(val) && Math.abs(val - correctSlope) < 0.001) {
-					correct = true;
+					correct1 = true;
 				}
+				userSlope = val;
 			}
-			output = `<div>${correct ? 'Correct!' : 'Incorrect.'} <button id=\"show-sol\">Show Solution</button></div>`;
-			showSolutionBtn = 'slope';
-		} else if (currentQuestion === 1) {
-			// Point on line grading
-			const [x, y] = questions[1].point;
-			const { m, b } = questions[1].line;
-			let onLine = Math.abs(y - (m * x + b)) < 0.001;
-			let correct = (answers[1] === (onLine ? 'Yes' : 'No'));
-			output = `<div>${correct ? 'Correct!' : 'Incorrect.'} <button id=\"show-sol\">Show Solution</button></div>`;
-			showSolutionBtn = 'point-on-line';
 		}
-		resultArea.innerHTML = output;
-		if (showSolutionBtn) {
-			document.getElementById('show-sol').onclick = function() {
-				if (showSolutionBtn === 'slope') {
-					resultArea.innerHTML += `<div>Solution: Slope = (11 - 3) / (5 - 2) = 8 / 3 ≈ 2.67</div>`;
-				} else if (showSolutionBtn === 'point-on-line') {
-					resultArea.innerHTML += `<div>Solution: y = 2x + 1, for x = 4: y = 2*4 + 1 = 9. Point (4, 9) is on the line.</div>`;
-				}
-			};
-		}
+		if (correct1) numCorrect++;
+		resultsHtml += `<li><strong>Question 1:</strong> Find the slope of the line passing through the points (2, 3) and (5, 11).<br>
+		Your answer: <em>${slopeInput || '(no answer)'}</em> <br>
+		${correct1 ? '<span style="color:green">Correct</span>' : '<span style="color:red">Incorrect</span>'}<br>
+		Solution: Slope = (11 - 3) / (5 - 2) = 8 / 3 ≈ 2.67
+		</li>`;
+		// Question 2
+		const [x2, y2] = questions[1].point;
+		const { m, b } = questions[1].line;
+		let onLine2 = Math.abs(y2 - (m * x2 + b)) < 0.001;
+		let correct2 = (answers[1] === (onLine2 ? 'Yes' : 'No'));
+		if (correct2) numCorrect++;
+		resultsHtml += `<li><strong>Question 2:</strong> Is the point (4, 9) on the line y = 2x + 1?<br>
+		Your answer: <em>${answers[1] || '(no answer)'}</em> <br>
+		${correct2 ? '<span style="color:green">Correct</span>' : '<span style="color:red">Incorrect</span>'}<br>
+		Solution: y = 2x + 1, for x = 4: y = 2*4 + 1 = 9. Point (4, 9) is on the line.
+		</li>`;
+		// Question 3
+		const [x3, y3] = questions[2].point;
+		const { a, b: b3, c } = questions[2].equation;
+		let onLine3 = Math.abs(a * x3 + b3 * y3 - c) < 0.001;
+		let correct3 = (answers[2] === (onLine3 ? 'Yes' : 'No'));
+		if (correct3) numCorrect++;
+		resultsHtml += `<li><strong>Question 3:</strong> Is the point (3, -2) on the line 2x - y = 8?<br>
+		Your answer: <em>${answers[2] || '(no answer)'}</em> <br>
+		${correct3 ? '<span style="color:green">Correct</span>' : '<span style="color:red">Incorrect</span>'}<br>
+		Solution: 2x - y = 8, for (3, -2): 2*3 - (-2) = 6 + 2 = 8. Point (3, -2) is on the line.
+		</li>`;
+		resultsHtml += '</ol>';
+		let percent = Math.round((numCorrect / 3) * 100);
+		resultsHtml += `<h3>Score: ${numCorrect} / 3 (${percent}%)</h3>`;
+		// Replace quiz with results
+		document.getElementById('quiz-container').innerHTML = resultsHtml;
 	});
 });
